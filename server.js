@@ -27,7 +27,6 @@ const validarPass = pass => (/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/.test(pass)
 
 // PETICION POST (Crear Usuario with md5)
 server.post('/user/create', (req, res) => {
-
     const newUser = { 
         user: req.body.user,
         pass: md5(req.body.pass),
@@ -43,7 +42,7 @@ server.post('/user/create', (req, res) => {
                         if (err) { 
                             if (err.code === 11000) {
                                 res.send("User already exists")
-                                res.redirect('/user/login')
+                                res.redirect(400, '/user/login')
                             } else {
                                 console.log(err);
                             }
@@ -64,7 +63,7 @@ server.post('/user/create', (req, res) => {
 })
 
 // PETICION POST  (Login with md5 and returns TOKEN)
-server.post('/user/login', (req, res) => {
+server.get('/user/login', (req, res) => {
     const USER = { 
         user: req.body.user,
         pass: md5(req.body.pass)
@@ -77,14 +76,12 @@ server.post('/user/login', (req, res) => {
                     .collection("Users")
                     .findOne(USER, (err, result) => {
                         if (err) throw err;
-
                         if (result === null) {
                             res.send("Contraseña/Usuario incorrectos")
-                            console.log(result);
                         }
                         else {
                             // TOKEN JWT
-                            let token = jwt.sign({ user: USER.user }, md5(process.env.SECRET))
+                            let token = jwt.sign({ user: USER.user }, result.secret, {expiresIn: 60*60})
                             res.send(token)
                             db.close();
                         }
@@ -140,30 +137,82 @@ server.delete('/user/delete', (req, res) => {
 
 // LEER INFO VERIFICANDO TOKEN
 server.get('/user/read', (req, res) => {
-    
-    let verify = jwt.verify(req.headers.authorization, md5(process.env.SECRET));
-    console.log(verify.user);
-
-    MongoClient.connect(URL, (err, db)=> {
-        try {
-            db.db("users")
-                .collection("Users")
-                .find({}).toArray( (err, result) => {
-                    if (err) {
-                        console.log(err);
-                        throw err;
-                    }
-                    else {
-                    res.send(result.map(el => el));
-                    db.close();
-                    console.log("Working tree clean");
-                    }
-                })
+    try {
+        let tokenArr = req.headers.authorization.split(" ");
+        let decode = jwt.decode(tokenArr[1]);
+        if (decode.user){
+            MongoClient.connect(URL, (err, db)=> {
+                try {
+                    db.db("users")
+                        .collection("Users")
+                        .findOne({user: decode.user}, (err, result) => {
+                            try {
+                                let verify = jwt.verify(tokenArr[1], result.secret)
+                                if (verify) {
+                                    res.send(result)
+                                    db.close();
+                                }
+                            }
+                            catch {
+                                res.status(401).json({
+                                    data: "Algo va mal... La sesión ha caducado",
+                                    ok: false,
+                                })
+                                console.log(err);
+                            }
+                        })
+                }
+                catch {
+                    console.log(err);
+                    res.send("Something working wrong with database")
+                }
+            })
         }
-        catch {
-            console.log(err);
-            res.send("Something working wrong with database")
-        }
-    })
+    } catch {
+        res.status(401).json({
+            data: "EL token no es valido",
+            ok: false,
+        })
+    }
 })
 
+// LOGOUT (Cargarse el puto token)
+server.get('/user/logout', (req, res) => {
+    try {
+        let tokenArr = req.headers.authorization.split(" ");
+        let decode = jwt.decode(tokenArr[1]);
+        if (decode.user){ 
+            MongoClient.connect(URL, (err, db)=> {
+                try {
+                    db.db("users")
+                        .collection("Users")
+                        .updateOne({user: decode.user}, {$set: {secret: randomstring.generate()}}, (err, result) => {
+                            try {
+                                res.send("Logged out correctly")
+                                db.close();
+                            }
+                            catch {
+                                res.status(401).json({
+                                    data: "Algo va mal... ",
+                                    ok: false,
+                                })
+                                console.log(err);
+                            }
+                        })
+                }
+                catch {
+                    res.status(401).json({
+                        data: "Algo va mal... No conecta",
+                        ok: false,
+                    })
+                }
+            })
+        }
+    }
+    catch{
+        res.status(401).json({
+            data: "¡No tienes token chaval!",
+            ok: false,
+        })
+    }
+})
