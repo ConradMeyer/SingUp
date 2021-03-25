@@ -1,5 +1,6 @@
 // ------ Importar dependencias ------
 const express = require('express');
+const cors = require('cors')
 const dotenv = require('dotenv').config();
 const {MongoClient} = require('mongodb');
 const jwt = require('jsonwebtoken');
@@ -11,6 +12,11 @@ const optionsMongo = { useNewUrlParser: true, useUnifiedTopology: true }
 // ------ Configuración inicial ------
 const server = express();
 const listenPort = process.env.PORT || 8080;
+server.use(cors());
+
+// HAY QUE APUNTAR AL FRONT ("/Public")
+const staticFilesPath = express.static(__dirname + '/public');
+server.use(staticFilesPath);
 
 // JSON support
 server.use(express.urlencoded({ extended: true }));
@@ -21,12 +27,13 @@ server.listen(listenPort,
     () => console.log(`Server listening on ${listenPort}`)
 );
 
+
 // VALIDATION
 const validarEmail = mail => (/^\w+([\.-]?\w+)*@(?:|hotmail|outlook|yahoo|live|gmail)\.(?:|com|es)+$/.test(mail));
 const validarPass = pass => (/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/.test(pass));
 
 // PETICION POST (Crear Usuario with md5)
-server.post('/user/create', (req, res) => {
+server.post('/user/create',  (req, res) => {
     const newUser = { 
         user: req.body.user,
         pass: md5(req.body.pass),
@@ -41,24 +48,27 @@ server.post('/user/create', (req, res) => {
                     .insertOne(newUser, (err, result) => {
                         if (err) { 
                             if (err.code === 11000) {
-                                res.send("User already exists")
-                                res.redirect(400, '/user/login')
+                                res.redirect(400, "/user/login")
                             } else {
+                                res.send(err)
                                 console.log(err);
                             }
                         } else {
-                            console.log(result);
-                            res.send("New user added")
+                            res.redirect(200, "/user/login")
                             db.close();
                         }
                     })
             }
             catch(exception) {
                 res.send("Check your database error")
+                console.log("error 3");
             }
         })
     } else {
-        res.send("Check to use a correct email and a password with minimum eight characters, at least one letter and one number")
+        res.status(406).json({
+            data: "Mail no valido / la contraseña contener digitos y como minimo una letra y un numero",
+            ok: false,
+        })
     }
 })
 
