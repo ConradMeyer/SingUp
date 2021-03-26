@@ -3,24 +3,28 @@ const PASS = document.querySelector("#pass");
 const BTN = document.querySelector("#signup");
 const LOGIN = document.querySelector("#login")
 
-BTN.addEventListener("click", () => signip());
+BTN.addEventListener("click", () => signin());
 
-function signip() {
+function signin() {
     const options = { 
       method: 'POST',
       body: JSON.stringify({user: EMAIL.value, pass:PASS.value }),
       headers:{'Content-Type': 'application/json'}
     }
-    fetch("/user/create", options)
+    fetch("/user/login", options)
         .then(response => {
             if (response.status === 200) {
-                alert("New user added")
+                window.location.href = "http://localhost:8080/welcome/welcome.html"
+                console.log(response);
+                // sessionStorage
+            }
+            else if (response.status === 401) {
+                alert("Email o contraseña incorrect@s")
+                console.log(response);
+                // sessionStorage
             }
             else if (response.status === 400) {
-                alert("User already exist")
-            }
-            else if (response.status === 406) {
-                alert("Mail/Pass inválidos")
+                alert("Email no valido")
             }
             else {
                 alert("No se que va mal...")

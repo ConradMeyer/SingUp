@@ -16,7 +16,7 @@ body {
 
 .form {
     width: 90%;
-    height: 50vh;
+    max-width: 500px;
     background-color: white;
     border-radius: 15px;
     padding: 30px;
@@ -58,7 +58,8 @@ body {
         padding: 8px 20px;
         margin: 15px;
         border-radius: 15px;
-        color: white;
+        color: black;
+        font-weight: bolder;
         box-shadow: 2px 5px 30px -7px black;
         font-size: 15px;
     }

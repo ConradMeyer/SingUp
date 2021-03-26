@@ -27,7 +27,6 @@ server.listen(listenPort,
     () => console.log(`Server listening on ${listenPort}`)
 );
 
-
 // VALIDATION
 const validarEmail = mail => (/^\w+([\.-]?\w+)*@(?:|hotmail|outlook|yahoo|live|gmail)\.(?:|com|es)+$/.test(mail));
 const validarPass = pass => (/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/.test(pass));
@@ -35,6 +34,7 @@ const validarPass = pass => (/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/.test(pass)
 // PETICION POST (Crear Usuario with md5)
 server.post('/user/create',  (req, res) => {
     const newUser = { 
+        name: req.body.name,
         user: req.body.user,
         pass: md5(req.body.pass),
         secret: randomstring.generate()
@@ -66,14 +66,14 @@ server.post('/user/create',  (req, res) => {
         })
     } else {
         res.status(406).json({
-            data: "Mail no valido / la contraseña contener digitos y como minimo una letra y un numero",
+            data: "Email no valido / la contraseña debe contener 8 digitos y como minimo una letra y un numero",
             ok: false,
         })
     }
 })
 
 // PETICION POST  (Login with md5 and returns TOKEN)
-server.get('/user/login', (req, res) => {
+server.post('/user/login', (req, res) => {
     const USER = { 
         user: req.body.user,
         pass: md5(req.body.pass)
@@ -87,22 +87,31 @@ server.get('/user/login', (req, res) => {
                     .findOne(USER, (err, result) => {
                         if (err) throw err;
                         if (result === null) {
-                            res.send("Contraseña/Usuario incorrectos")
+                            res.status(401).json({
+                                data: "Email o contraseña incorrect@s",
+                                ok: false,
+                            })
                         }
                         else {
                             // TOKEN JWT
                             let token = jwt.sign({ user: USER.user }, result.secret, {expiresIn: 60*60})
-                            res.send(token)
+                            res.status(200).json({
+                                data: token,
+                                ok: false,
+                            })
                             db.close();
                         }
                     })
             }
             catch(exception) {
-                res.send("Check your database error")
+                res.send("Error con la base de datos")
             }
         })
     } else {
-        res.send("Email o contraseña incorrecto")
+        res.status(400).json({
+            data: "Email no valido, debes meter un correo correcto",
+            ok: false,
+        })
     }
 })
 
