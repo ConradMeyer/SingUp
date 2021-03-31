@@ -58,6 +58,14 @@ div.main {
         .private:hover {
             cursor: pointer;
         }
+    .main h2 {
+        text-align: center;
+        margin: 15px auto;
+    }
+    .main h3 {
+        /* text-align: center; */
+        margin: 15px;
+    }
 
 footer {
     background-color: black;

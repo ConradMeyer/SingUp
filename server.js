@@ -88,6 +88,7 @@ server.post('/user/login', (req, res) => {
                         if (err) throw err;
                         if (result === null) {
                             res.status(401).json({
+                                status: 401,
                                 data: "Email o contraseña incorrect@s",
                                 ok: false,
                             })
@@ -96,8 +97,10 @@ server.post('/user/login', (req, res) => {
                             // TOKEN JWT
                             let token = jwt.sign({ user: USER.user }, result.secret, {expiresIn: 60*60})
                             res.status(200).json({
+                                status: 200,
                                 data: token,
-                                ok: false,
+                                name: result.name,
+                                ok: true,
                             })
                             db.close();
                         }
@@ -109,6 +112,7 @@ server.post('/user/login', (req, res) => {
         })
     } else {
         res.status(400).json({
+            status: 400,
             data: "Email no valido, debes meter un correo correcto",
             ok: false,
         })
@@ -156,9 +160,9 @@ server.delete('/user/delete', (req, res) => {
 
 // LEER INFO VERIFICANDO TOKEN
 server.get('/user/read', (req, res) => {
+    console.log(req.headers.authentication);
     try {
-        let tokenArr = req.headers.authorization.split(" ");
-        let decode = jwt.decode(tokenArr[1]);
+        let decode = jwt.decode(req.headers.authentication);
         if (decode.user){
             MongoClient.connect(URL, (err, db)=> {
                 try {
@@ -166,7 +170,7 @@ server.get('/user/read', (req, res) => {
                         .collection("Users")
                         .findOne({user: decode.user}, (err, result) => {
                             try {
-                                let verify = jwt.verify(tokenArr[1], result.secret)
+                                let verify = jwt.verify(req.headers.authentication, result.secret)
                                 if (verify) {
                                     res.send(result)
                                     db.close();

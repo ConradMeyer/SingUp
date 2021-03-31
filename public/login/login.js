@@ -12,16 +12,16 @@ function signin() {
       headers:{'Content-Type': 'application/json'}
     }
     fetch("/user/login", options)
+        .then(data => data.json())
         .then(response => {
             if (response.status === 200) {
                 window.location.href = "http://localhost:8080/welcome/welcome.html"
-                console.log(response);
-                // sessionStorage
+                console.log(response.name);
+                localStorage.setItem("token", response.data)
             }
             else if (response.status === 401) {
                 alert("Email o contraseña incorrect@s")
                 console.log(response);
-                // sessionStorage
             }
             else if (response.status === 400) {
                 alert("Email no valido")
@@ -30,5 +30,5 @@ function signin() {
                 alert("No se que va mal...")
             }
         })
-        .catch(err => console.log(err))
+        .catch(err => console.log("Error con el servidor", err))
   }
